@@ -1,0 +1,27 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+	<Package Name="S397ConfigEditor_Installer" Language="1033" Version="1.0.0.0" Manufacturer="Seven Smiles" UpgradeCode="ccda88f6-31f2-47ee-b1e5-845485f26620" InstallerVersion="200" ProductCode="F2692BCC-EC19-4AF0-9683-3BAEA7152798">
+		
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		
+
+		<Feature Id="ProductFeature" Title="S397ConfigEditor_Installer" Level="1">
+			<ComponentGroupRef Id="ProductComponents" />
+		</Feature>
+	</Package>
+
+	<Fragment>
+			<StandardDirectory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="S397ConfigEditor_Installer" />
+			</StandardDirectory>
+		</Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
+			<!-- <Component Id="ProductComponent"> -->
+				<!-- TODO: Insert files, registry keys, and other resources here. -->
+			<!-- </Component> -->
+		</ComponentGroup>
+	</Fragment>
+</Wix>
