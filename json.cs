@@ -19,25 +19,20 @@ public static class JsonFiles
     /// <summary>
     /// Read a JSON file, return a dict
     /// </summary>
-    public static dict ReadJsonFile(string filepath)
-    {
-        return ReadJsonFile<dict>(filepath);
-    }
+    public static dict ReadJsonFile(string filepath) => ReadJsonFile<dict>(filepath);
 
     public static T ReadJsonFile<T>(string filepath)
     {
         string json;
         try
         {
-            using (var r = new StreamReader(filepath))
-            {
-                json = r.ReadToEnd();
-            }
+            using var r = new StreamReader(filepath);
+            json = r.ReadToEnd();
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            return default(T);
+            return default;
         }
 
         try
@@ -55,7 +50,7 @@ public static class JsonFiles
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            return default(T);
+            return default;
         }
     }
 
@@ -99,7 +94,7 @@ public static class JsonFiles
     /// <summary>
     /// Write a dict to JSON file.
     /// </summary>
-    public static void WriteGameJsonFile(Games game, string filepath, dict dictionary)
+    public static void WriteGameJsonFile(Game game, string filepath, dict dictionary)
     {
         if (false)//game == Games.RF2)
         {   // Now not sure what this does but LMU doesn't need it
@@ -124,7 +119,7 @@ public static class JsonFiles
         WriteJsonFile<dict>(game, filepath, dictionary);
     }
 
-    public static void WriteJsonFile<T>(Games game, string filepath, T obj)
+    public static void WriteJsonFile<T>(Game game, string filepath, T obj)
     {
         var jsonString = JsonConvert.SerializeObject(obj, Formatting.Indented,
             new JsonSerializerSettings
@@ -134,7 +129,7 @@ public static class JsonFiles
                     new StringEnumConverter()
                 }
             });
-        if (game == Games.RF2)
+        if (game == Game.RF2)
         {
             jsonString = JsonToRF2(jsonString);
         }
@@ -215,12 +210,10 @@ public static class JsonFiles
     /// <summary>
     /// Copy a dict to a another dict
     /// </summary>
-    public static void CopyDict(ref dict fromDict, out dict toDict)
-    {
+    public static void CopyDict(ref dict fromDict, out dict toDict) =>
         // Deep copy using JSON serialization
         toDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(
             JsonConvert.SerializeObject(fromDict));
-    }
 }
 
 
@@ -270,8 +263,8 @@ public static class WriteDict
         foreach (var tabData in writeDict) // HACKERY!!!
         {
             var group = tabData.Key;
-            dict fred = tabData.Value.ToObject<dict>();
-            if (fred.ContainsKey(key))
+            dict _dict = tabData.Value.ToObject<dict>();
+            if (_dict.ContainsKey(key))
             {
                 writeDict[group][key] = value;
                 changed = true;
@@ -298,16 +291,16 @@ public static class WriteDict
     public static Dictionary<string, dynamic> GetDictionaryDifference(Dictionary<string, dynamic> dict1, Dictionary<string, dynamic> dict2)
     {
         // Create a new dictionary to store the differences
-        Dictionary<string, dynamic> diff = new Dictionary<string, dynamic>();
+        var diff = new Dictionary<string, dynamic>();
 
         // Iterate over the keys in dict1
         foreach (var kvp in dict1)
         {
-            string key = kvp.Key;
-            dynamic value1 = kvp.Value;
+            var key = kvp.Key;
+            var value1 = kvp.Value;
 
             // Check if dict2 contains the key
-            if (dict2.TryGetValue(key, out dynamic value2))
+            if (dict2.TryGetValue(key, out var value2))
             {
                 // The key exists in both dictionaries, compare the values
                 if (!AreValuesEqual(value1, value2))
@@ -326,7 +319,7 @@ public static class WriteDict
         // Check for keys in dict2 that don't exist in dict1
         foreach (var kvp in dict2)
         {
-            string key = kvp.Key;
+            var key = kvp.Key;
 
             if (!dict1.ContainsKey(key))
             {
@@ -376,7 +369,7 @@ public static class TextUtils
             lineWidth += word.Length + 1;
 
             if (lineWidth > width ||
-                (word.EndsWith(",")))
+                word.EndsWith(","))
             {
                 result.Append("\n");
                 lineWidth = 0;

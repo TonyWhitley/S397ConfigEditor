@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace S397ConfigEditor;
 
 partial class AboutBox1 : Form
 {
-    public AboutBox1()
+    internal AboutBox1()
     {
         InitializeComponent();
         this.Text = String.Format("About {0}", AssemblyTitle);
@@ -19,21 +14,22 @@ partial class AboutBox1 : Form
         this.labelVersion.Text = String.Format("Version {0}", AssemblyVersion);
         this.labelCopyright.Text = AssemblyCopyright;
         this.labelCompanyName.Text = AssemblyCompany;
-        this.textBoxDescription.Text = AssemblyDescription;
-        this.textBoxDescription.Text +=
-            "\n\n Can also run from the command line";
+        this.textBoxDescription.Text = AssemblyDescription +
+                                       Environment.NewLine +
+                                       Environment.NewLine +
+                                       "Can also run from the command line.";
     }
 
     #region Assembly Attribute Accessors
 
-    public string AssemblyTitle
+    private string AssemblyTitle
     {
         get
         {
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
+            var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false);
             if (attributes.Length > 0)
             {
-                AssemblyTitleAttribute titleAttribute = (AssemblyTitleAttribute)attributes[0];
+                var titleAttribute = (AssemblyTitleAttribute)attributes[0];
                 if (titleAttribute.Title != "")
                 {
                     return titleAttribute.Title;
@@ -43,19 +39,16 @@ partial class AboutBox1 : Form
         }
     }
 
-    public string AssemblyVersion
+    private string AssemblyVersion
     {
-        get
-        {
-            return Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        }
+        get => Assembly.GetExecutingAssembly().GetName().Version.ToString();
     }
 
-    public string AssemblyDescription
+    private string AssemblyDescription
     {
         get
         {
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyDescriptionAttribute), false);
+            var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyDescriptionAttribute), false);
             if (attributes.Length == 0)
             {
                 return "";
@@ -64,11 +57,11 @@ partial class AboutBox1 : Form
         }
     }
 
-    public string AssemblyProduct
+    private string AssemblyProduct
     {
         get
         {
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyProductAttribute), false);
+            var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyProductAttribute), false);
             if (attributes.Length == 0)
             {
                 return "";
@@ -77,11 +70,11 @@ partial class AboutBox1 : Form
         }
     }
 
-    public string AssemblyCopyright
+    private string AssemblyCopyright
     {
         get
         {
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false);
+            var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false);
             if (attributes.Length == 0)
             {
                 return "";
@@ -90,11 +83,11 @@ partial class AboutBox1 : Form
         }
     }
 
-    public string AssemblyCompany
+    private string AssemblyCompany
     {
         get
         {
-            object[] attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCompanyAttribute), false);
+            var attributes = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyCompanyAttribute), false);
             if (attributes.Length == 0)
             {
                 return "";

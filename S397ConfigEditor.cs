@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
-using System.Linq.Expressions;
 using System.Windows.Forms;
 
 using CommandLine;
@@ -11,8 +9,6 @@ namespace S397ConfigEditor;
 
 public class Config
 {
-    internal Games rf2Lmu;
-
     public string playerPath;
 
     public string playerJson;
@@ -37,35 +33,16 @@ public class Config
                 playerJsonFilter);
     }
 
-    internal void SwitchToLMU()
-    {
-        rf2Lmu = Games.LMU;
-        playerPath =
-            @"c:\Program Files (x86)\Steam\steamapps\common\Le Mans Ultimate\UserData\player";
-        playerJson = @"Settings.JSON";
-        playerJsonPath =
-            System.IO.Path.Combine(playerPath, playerJson);
-        playerJsonFilter = @"LMUSettingsFilter.JSON";
-
-        playerEditorFilterJson =
-            System.IO.Path.Combine(GetTheDataFilePath(),
-                playerJsonFilter);
-    }
-
     /// <summary> Get the path of this source file </summary>
     internal static string GetThisFilesPath(
         [System.Runtime.CompilerServices.CallerFilePath]
-        string sourceFilePath = "")
-    {
-        return System.IO.Directory.GetParent(sourceFilePath).ToString();
-    }
+        string sourceFilePath = "") =>
+        System.IO.Directory.GetParent(sourceFilePath).ToString();
 
     /// <summary> Get the path of the exe file </summary>
-    internal static string GetThisExesPath()
-    {
-        return System.IO.Directory.GetParent(Application.ExecutablePath)
+    internal static string GetThisExesPath() =>
+        System.IO.Directory.GetParent(Application.ExecutablePath)
             .ToString();
-    }
 
     /// <summary> Get the path of the data file - the same as the exe
     /// if we're running as a program, the same as the source file if
@@ -84,72 +61,56 @@ public class Config
     }
 }
 
-public enum Games
+public enum Game
 {
     RF2,
     LMU
 }
-internal class Configs : IEnumerable<KeyValuePair<Games, Config>>
+internal class Configs : IEnumerable<KeyValuePair<Game, Config>>
 {
-    private Dictionary<Games, Config> configs;
-    //public Games CurrentGame;
-
-    public Configs()
+    private readonly Dictionary<Game, Config> configs = new()
     {
-        configs = new Dictionary<Games, Config>()
         {
+            Game.RF2,
+            new Config
             {
-                Games.RF2,
-                new Config
-                {
-                    rf2Lmu = Games.RF2,
-                    playerPath =
-                        "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player",
-                    playerJson = "Player.JSON",
-                    playerJsonPath =
-                        "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player\\Player.JSON",
-                    playerJsonFilter = "rF2PlayerEditorFilter.JSON",
-                    playerEditorFilterJson =
-                        "rF2PlayerEditorFilter.JSON"
-                }
-            },
-            {
-                Games.LMU,
-                new Config
-                {
-                    rf2Lmu = Games.LMU,
-                    playerPath =
-                        "c:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate\\UserData\\player",
-                    playerJson = "Settings.JSON",
-                    playerJsonPath =
-                        "c:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate\\UserData\\player\\Settings.JSON",
-                    playerJsonFilter = "LMUSettingsFilter.JSON",
-                    playerEditorFilterJson =
-                        "LMUSettingsFilter.JSON"
-                }
+                playerPath =
+                    "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player",
+                playerJson = "Player.JSON",
+                playerJsonPath =
+                    "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player\\Player.JSON",
+                playerJsonFilter = "rF2PlayerEditorFilter.JSON",
+                playerEditorFilterJson =
+                    "rF2PlayerEditorFilter.JSON"
             }
-        };
-    }
-    public void Add(Games key, Config value)
-    {
-        configs.Add(key, value);
-    }
+        },
+        {
+            Game.LMU,
+            new Config
+            {
+                playerPath =
+                    "c:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate\\UserData\\player",
+                playerJson = "Settings.JSON",
+                playerJsonPath =
+                    "c:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate\\UserData\\player\\Settings.JSON",
+                playerJsonFilter = "LMUSettingsFilter.JSON",
+                playerEditorFilterJson =
+                    "LMUSettingsFilter.JSON"
+            }
+        }
+    };
 
-    public Config this[Games key]
+    public void Add(Game key, Config value) => configs.Add(key, value);
+
+    public Config this[Game key]
     {
         get { return configs[key]; }
         set { configs[key] = value; }
     }
 
-    public IEnumerator<KeyValuePair<Games, Config>> GetEnumerator()
-    {
-        return configs.GetEnumerator();
-    }
+    public IEnumerator<KeyValuePair<Game, Config>> GetEnumerator() => configs.GetEnumerator();
 
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 
@@ -182,16 +143,11 @@ internal class Configs : IEnumerable<KeyValuePair<Games, Config>>
 ///         RPLAY
 ///     Sound Options
 /// </remarks>
-#pragma warning disable IDE1006 // Naming Styles
-#pragma warning disable S101 // Naming Styles
-
 internal static class S397ConfigEditor
-
-#pragma warning restore S101 // Naming Styles
-#pragma warning restore IDE1006 // Naming Styles
 {
-    private static Configs configs;
-    public static Config cfg;
+    private static Configs configs; // Default or loaded from the file specified
+    public static Config config;
+    private static Game game;
     private static bool scripting = false;
     private const string EditorJsonPath = "PlayerEditorConfig.JSON";
 
@@ -202,41 +158,30 @@ internal static class S397ConfigEditor
     [STAThread]
     private static void Main(string[] args)
     {
-        cfg = ParseCommandLine(args);
+        (game, config) = ParseCommandLine(args);
 
         if (File.Exists(EditorJsonPath))
         {
             configs = JsonFiles.ReadJsonFile<Configs>(EditorJsonPath);
         }
 
-        if (configs == null)
-        {
-            configs = new Configs();
-        }
+        configs ??= new Configs();
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        bool runEditor = true;
+        var runEditor = true;
         while (runEditor)
         {
-            if (cfg.rf2Lmu == Games.LMU)
-            {
-                //cfg.SwitchToLMU();
-                cfg = configs[Games.LMU];
-            }
-            else
-            {
-                cfg = configs[Games.RF2];
-            }
+            config = game == Game.LMU ? configs[Game.LMU] : configs[Game.RF2];
 
-            var playerOriginal = JsonFiles.ReadJsonFile(cfg.playerJsonPath);
+            var playerOriginal = JsonFiles.ReadJsonFile(config.playerJsonPath);
             var playerFilter =
-                JsonFiles.ReadJsonFile(cfg.playerEditorFilterJson);
+                JsonFiles.ReadJsonFile(config.playerEditorFilterJson);
             JsonFiles.CopyDict(ref playerOriginal, out WriteDict.writeDict);
             // Get Player.JSON path from the file then remove it from the dictionary
-            cfg.playerJsonPath = playerFilter[cfg.playerJson];
-            playerFilter.Remove(cfg.playerJson);
+            config.playerJsonPath = playerFilter[config.playerJson];
+            playerFilter.Remove(config.playerJson);
 
             var tabs = JsonFiles.ParseRF2PlayerEditorFilter(playerFilter);
             // Copy values from Player.JSON to the dict used to display entries
@@ -247,7 +192,7 @@ internal static class S397ConfigEditor
                 break;
             }
 
-            var form = new Form1(tabs, cfg);
+            var form = new Form1(tabs, game);
             Application.Run(form);
             var diff =
                 WriteDict.GetDictionaryDifference(WriteDict.writeDict,
@@ -255,16 +200,16 @@ internal static class S397ConfigEditor
             if (diff.Count > 0)
             { // Content has changed, offer to save / save as
                 form.SaveChanges();
-                JsonFiles.WriteJsonFile(Games.LMU, EditorJsonPath, configs); // TBD: 
+                JsonFiles.WriteJsonFile(Game.LMU, EditorJsonPath, configs); // TBD: 
             }
             runEditor = form.ExitCode;
             // switch games
-            cfg.rf2Lmu = cfg.rf2Lmu == Games.RF2 ? Games.LMU : Games.RF2;
+            game = game == Game.RF2 ? Game.LMU : Game.RF2;
         }
     }
 
 
-    internal class Options
+    private class Options
     {
         [Option('s', "script", Required = false, HelpText = "The path to the JSON file containing edits.")]
         public string Script { get; set; }
@@ -276,8 +221,9 @@ internal static class S397ConfigEditor
         public string Lmu { get; set; }
     }
 
-    private static Config ParseCommandLine(string[] args)
+    private static (Game, Config) ParseCommandLine(string[] args)
     {
+        var game = Game.RF2; ;
         var config = new Config();
         var parser = new Parser(settings =>
         {
@@ -299,19 +245,18 @@ internal static class S397ConfigEditor
                 if (!String.IsNullOrEmpty(o.Rf2))
                 {
                     Console.WriteLine("Edit the rFactor 2 JSON file");
-                    config.rf2Lmu = Games.RF2;
+                    game = Game.RF2;
                 }
                 if (!String.IsNullOrEmpty(o.Lmu))
                 {
                     Console.WriteLine("Edit the Le Mans Ultimate JSON file");
-                    config.rf2Lmu = Games.LMU;
+                    game = Game.LMU;
                 }
             });
-        return config;
+        return (game, config);
     }
 
-    public static void SaveChanges()
-    {
-        JsonFiles.WriteGameJsonFile(cfg.rf2Lmu, cfg.playerJsonPath, WriteDict.writeDict);
-    }
+    public static void SaveChanges() =>
+        JsonFiles.WriteGameJsonFile(game, config.playerJsonPath,
+            WriteDict.writeDict);
 }

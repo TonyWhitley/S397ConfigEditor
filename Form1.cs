@@ -15,11 +15,10 @@ public partial class Form1 : Form
 {
     private const int MaxRows = 20;
 
-    private readonly Dictionary<string, TextBox> _textBoxes =
-        new Dictionary<string, TextBox>{};
-    private readonly Dictionary<string, Label> _labels = new Dictionary<string, Label> { };
-    private readonly Dictionary<string, ToolTip> _toolTips = new Dictionary<string, ToolTip> { };
-    private readonly Dictionary<string, ComboBox> _comboBoxes = new Dictionary<string, ComboBox> {};
+    private readonly Dictionary<string, TextBox> _textBoxes = new() {};
+    private readonly Dictionary<string, Label> _labels = new() { };
+    private readonly Dictionary<string, ToolTip> _toolTips = new() { };
+    private readonly Dictionary<string, ComboBox> _comboBoxes = new() {};
 
     private void Tab(dict tabData,
         string section,
@@ -104,7 +103,7 @@ public partial class Form1 : Form
             else
             {   // JSON keys ending in # are comments, use them for tooltips
                 name = name.Trim('#');
-                string tip = entry.Value;
+                string tip = ToSentenceCase(entry.Value);
                 if (tip.Length > 45) // If more than 45 chars wrap every 40
                 {
                     tip = TextUtils.WrapText(tip, 40);
@@ -133,7 +132,13 @@ public partial class Form1 : Form
         // Set the number of columns of label/entry pairs
         panel.ColumnCount = (entriesInThisTab / MaxRows + 1) * 2;
     }
-
+    private static string ToSentenceCase(string str)
+    {
+        if (string.IsNullOrWhiteSpace(str))
+            return str;
+        str = str.Trim();
+        return char.ToUpper(str[0]) + (str.Length > 1 ? str.Substring(1).ToLower() : "");
+    }
     /// <summary> Event handler when a value is changed </summary>
     private void ComboBoxValueChanged(object sender, EventArgs e)
     {
@@ -162,20 +167,20 @@ public partial class Form1 : Form
         }
     }
 
-    public bool ExitCode { get; set; } = false;
+    public bool ExitCode { get; private set; } = false;
     /// <summary>
     /// The main (only) form
     /// </summary>
-    public Form1(dict tabDict, Config cfg)
+    public Form1(dict tabDict, Game game)
     {
         var tabCount = tabDict.Count;
         var panels = new TableLayoutPanel[tabCount];
         var tabPages = new TabPage[tabCount];
-        int width;
 
         InitializeComponent();
-        
-        if (cfg.rf2Lmu == Games.RF2)
+
+        var PlayerVsSessions = "Player.JSON";
+        if (game == Game.RF2)
         {
             rFactorToolStripMenuItem_Click(null, null);
             this.Text = "rFactor 2 Player.JSON Editor";
@@ -184,7 +189,10 @@ public partial class Form1 : Form
         {
             leMansUltimateToolStripMenuItem_Click(null, null);
             this.Text = "Le Mans Ultimate Settings.JSON Editor";
+            PlayerVsSessions = "Settings.JSON";
         }
+        this.toolStripMenuFileOpen.ToolTipText = $"Open a file that lays out {PlayerVsSessions}";
+        this.toolStripMenuFileSave.ToolTipText = $"Save {PlayerVsSessions}";
 
         for (var u = 0; u < tabCount; u++)
         {
@@ -199,14 +207,7 @@ public partial class Form1 : Form
         var panelCount = 0;
         foreach (var entry in tabDict)
         {
-            if (entry.Key == "Chat")
-            {
-                width = 150;
-            }
-            else
-            {
-                width = 60;
-            }
+            var width = entry.Key == "Chat" ? 150 : 60;
 
             Tab(entry.Value,
                 entry.Key,
@@ -235,7 +236,7 @@ public partial class Form1 : Form
     {
         var message = string.Format(
             "You have made changes, do you want to save them?",
-            S397ConfigEditor.cfg.playerJson);
+            S397ConfigEditor.config.playerJson);
         const string caption = "Closing down";
         var result = MessageBox.Show(message, caption,
             MessageBoxButtons.YesNo,
@@ -249,8 +250,8 @@ public partial class Form1 : Form
 
     private void FileMenuItemOpenClick(object sender, EventArgs e)
     {
-        openFileDialog.InitialDirectory = S397ConfigEditor.cfg.GetTheDataFilePath();
-        openFileDialog.FileName = S397ConfigEditor.cfg.playerJsonFilter;
+        openFileDialog.InitialDirectory = S397ConfigEditor.config.GetTheDataFilePath();
+        openFileDialog.FileName = S397ConfigEditor.config.playerJsonFilter;
         if (openFileDialog.ShowDialog() == DialogResult.OK)
         {
             var editsFile = openFileDialog.FileName;
@@ -261,21 +262,18 @@ public partial class Form1 : Form
 
     private void FileMenuItemSaveClick(object sender = null, EventArgs e = null)
     {
-        saveFileDialog.InitialDirectory = S397ConfigEditor.cfg.playerPath;
-        saveFileDialog.FileName = S397ConfigEditor.cfg.playerJson;
+        saveFileDialog.InitialDirectory = S397ConfigEditor.config.playerPath;
+        saveFileDialog.FileName = S397ConfigEditor.config.playerJson;
         saveFileDialog.Filter = "JSON files|*.JSON";
         if (saveFileDialog.ShowDialog() == DialogResult.OK)
         {
-            S397ConfigEditor.cfg.playerJsonPath = saveFileDialog.FileName;
+            S397ConfigEditor.config.playerJsonPath = saveFileDialog.FileName;
             S397ConfigEditor.SaveChanges();
             //MessageBox.Show(string.Format("Saved as {0}", Config.playerJsonPath));
         }
     }
 
-    private void FileMenuItemExitClick(object sender, EventArgs e)
-    {
-        Close();
-    }
+    private void FileMenuItemExitClick(object sender, EventArgs e) => Close();
 
     private void HelpMenuItemAboutClick(object sender, EventArgs e)
     {

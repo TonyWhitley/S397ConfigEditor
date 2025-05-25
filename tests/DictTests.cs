@@ -13,21 +13,21 @@ namespace tests
         [TestMethod]
         public void TestMethod1()
         {
-            Dictionary<string, dynamic> dict1 = new Dictionary<string, dynamic>()
+            var dict1 = new Dictionary<string, dynamic>()
         {
             { "A", 1 },
             { "B", "Hello" },
             { "C", 3.14 }
         };
 
-            Dictionary<string, dynamic> dict2 = new Dictionary<string, dynamic>()
+            var dict2 = new Dictionary<string, dynamic>()
         {
             { "A", 1 },
             { "B", "World" },
             { "D", DateTime.Now }
         };
 
-            Dictionary<string, dynamic> diff = WriteDict.GetDictionaryDifference(dict1, dict2);
+            var diff = WriteDict.GetDictionaryDifference(dict1, dict2);
             Assert.AreEqual(3, diff.Count);
         }
     }
