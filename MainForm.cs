@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
 namespace S397ConfigEditor;
 
-using dict = Dictionary<string, dynamic>;
-
 /// <summary>
 /// The main form
 /// </summary>
-public partial class Form1 : Form
+public partial class MainForm : Form
 {
     private const int MaxRows = 20;
 
@@ -20,7 +19,7 @@ public partial class Form1 : Form
     private readonly Dictionary<string, ToolTip> _toolTips = new() { };
     private readonly Dictionary<string, ComboBox> _comboBoxes = new() {};
 
-    private void Tab(dict tabData,
+    private void Tab(ContentDict tabData,
         string section,
         TabPage tabPage,
         TableLayoutPanel panel,
@@ -33,7 +32,7 @@ public partial class Form1 : Form
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         tabPage.Text = section;
 
-        foreach (var entry in tabData[tabData.First().Key].ToObject<dict>())
+        foreach (var entry in tabData[tabData.First().Key].ToObject<ContentDict>())
         {
             string name = entry.Key;
             string val;
@@ -103,7 +102,7 @@ public partial class Form1 : Form
             else
             {   // JSON keys ending in # are comments, use them for tooltips
                 name = name.Trim('#');
-                string tip = ToSentenceCase(entry.Value);
+                string tip = TextUtils.ToSentenceCase(entry.Value);
                 if (tip.Length > 45) // If more than 45 chars wrap every 40
                 {
                     tip = TextUtils.WrapText(tip, 40);
@@ -132,13 +131,7 @@ public partial class Form1 : Form
         // Set the number of columns of label/entry pairs
         panel.ColumnCount = (entriesInThisTab / MaxRows + 1) * 2;
     }
-    private static string ToSentenceCase(string str)
-    {
-        if (string.IsNullOrWhiteSpace(str))
-            return str;
-        str = str.Trim();
-        return char.ToUpper(str[0]) + (str.Length > 1 ? str.Substring(1).ToLower() : "");
-    }
+
     /// <summary> Event handler when a value is changed </summary>
     private void ComboBoxValueChanged(object sender, EventArgs e)
     {
@@ -168,16 +161,20 @@ public partial class Form1 : Form
     }
 
     public bool ExitCode { get; private set; } = false;
+    private Game _game { get; set; }
     /// <summary>
     /// The main (only) form
     /// </summary>
-    public Form1(dict tabDict, Game game)
+    public MainForm(ContentDict tabContentDict, Game game)
     {
-        var tabCount = tabDict.Count;
+        var tabCount = tabContentDict.Count;
         var panels = new TableLayoutPanel[tabCount];
         var tabPages = new TabPage[tabCount];
 
+        _game = game;
         InitializeComponent();
+        this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+        this.MinimumSize = new System.Drawing.Size(800, 600);
 
         var PlayerVsSessions = "Player.JSON";
         if (game == Game.RF2)
@@ -194,18 +191,18 @@ public partial class Form1 : Form
         this.toolStripMenuFileOpen.ToolTipText = $"Open a file that lays out {PlayerVsSessions}";
         this.toolStripMenuFileSave.ToolTipText = $"Save {PlayerVsSessions}";
 
-        for (var u = 0; u < tabCount; u++)
+        for (var tab = 0; tab < tabCount; tab++)
         {
-            panels[u] = new TableLayoutPanel
+            panels[tab] = new TableLayoutPanel
             {
                 AutoSize = true
             };
-            tabPages[u] = new TabPage();
-            tabPages[u].Controls.Add(panels[u]);
+            tabPages[tab] = new TabPage();
+            tabPages[tab].Controls.Add(panels[tab]);
         }
 
         var panelCount = 0;
-        foreach (var entry in tabDict)
+        foreach (var entry in tabContentDict)
         {
             var width = entry.Key == "Chat" ? 150 : 60;
 
@@ -226,10 +223,10 @@ public partial class Form1 : Form
             new Size(50, 70); // Set the size of the tab labels
         TabControl1.Padding =
             new Point(3, 0); //Padding round the tab labels
-    }
-
-    private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-    {
+        this.TabControl1.Anchor = ((System.Windows.Forms.AnchorStyles)
+            ((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
     }
 
     public void SaveChanges()
@@ -267,8 +264,7 @@ public partial class Form1 : Form
         saveFileDialog.Filter = "JSON files|*.JSON";
         if (saveFileDialog.ShowDialog() == DialogResult.OK)
         {
-            S397ConfigEditor.config.playerJsonPath = saveFileDialog.FileName;
-            S397ConfigEditor.SaveChanges();
+            S397ConfigEditor.SaveCurrentSettingsToPlayerJson(saveFileDialog.FileName);
             //MessageBox.Show(string.Format("Saved as {0}", Config.playerJsonPath));
         }
     }
@@ -307,5 +303,37 @@ public partial class Form1 : Form
                 this.Close();
             }
         }
+    }
+
+    private void loadAScriptToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        openScriptFileDialog.InitialDirectory = S397ConfigEditor.config.GetTheDataFilePath();
+        openScriptFileDialog.Filter = "JSON files|*.JSON";
+        if (openScriptFileDialog.ShowDialog() == DialogResult.OK)
+        {
+            var scriptFilePath = openScriptFileDialog.FileName;
+            S397ConfigEditor.loadAScriptThatAltersCurrentSettings(scriptFilePath);
+            //MessageBox.Show(string.Format("Open {0}", scriptFilePath));
+        }
+    }
+
+    private void saveAScriptToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        saveScriptFileDialog.InitialDirectory = S397ConfigEditor.config.GetTheDataFilePath();
+        saveScriptFileDialog.Filter = "JSON files|*.JSON";
+        if (saveScriptFileDialog.ShowDialog() == DialogResult.OK)
+        {
+            S397ConfigEditor.config.playerJsonPath = saveScriptFileDialog.FileName;
+            S397ConfigEditor.SaveCurrentSettingsToPlayerJson(saveScriptFileDialog.FileName);
+            //MessageBox.Show(string.Format("Saved as {0}", Config.playerJsonPath));
+        }
+    }
+
+    private void resetToDefaultSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        var filePath =
+            Path.Combine(S397ConfigEditor.config.GetTheDataFilePath(),
+                S397ConfigEditor.config.playerDefaultsJson);
+        S397ConfigEditor.resetToDefaultSettings(filePath);
     }
 }

@@ -1,0 +1,20 @@
+﻿1) JSON file with the default values (copied from the game originally, separate to the filter file although the defaults may be the same)
+2) JSON file with the changes, e.g.
+
+{
+  "Player.JSON" : "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player\\player.Json",
+  "#Created from player.JSON" : "Grouped into Tab names, reusing the original section within that",
+  "DRIVING AIDS": {
+    "Antilock Brakes": 0
+    },
+  "Graphic Options": {
+    "HUD": 6
+    }
+}
+
+2) is created by editing in the GUI and then "File / Save changes as script"
+
+Running the script has two modes
+Automated: Run it from the command line, make the changes to Player.JSON and quit
+Pre-loading: Run it from the GUI then let the user make more changes and save a new script (as a way of reusing scripts).  
+             Can do that more than once to agglomerate several scripts.

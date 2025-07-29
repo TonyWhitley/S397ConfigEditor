@@ -1,10 +1,10 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Collections.Generic;
+
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using S397ConfigEditor;
 
 namespace Tests
 {
-    using dict = System.Collections.Generic.Dictionary<string, dynamic>;
-
     [TestClass()]
     public class JsonFilesTests
     {
@@ -12,7 +12,7 @@ namespace Tests
             @"c:\Program Files (x86)\Steam\steamapps\common\rFactor 2\UserData\player\player.JSON";
 
         private readonly string rF2PlayerEditorFilterJson =
-            "../../../../rF2PlayerEditorFilter.JSON";
+            "../../rF2PlayerEditorFilter.JSON";
 
         /// <summary>Read Player.JSON</summary>
         [TestMethod()]
@@ -42,7 +42,7 @@ namespace Tests
             string value;
             string testString;
             object JsonObj;
-            var testDict = new dict();
+            var testDict = new Dictionary<string, dynamic>();
 
             key = "Quick Chat #10";
             value = "true";
@@ -101,7 +101,7 @@ namespace Tests
     public class DictTests
     {
         /// <summary> Read the filter JSON file and split it </summary>
-        private dict GetRF2PlayerEditorFilterTabsFromJsonFile()
+        private Dictionary<string, dynamic> GetRF2PlayerEditorFilterTabsFromJsonFile()
         {
             var playerFilter =
                 JsonFiles.ReadJsonFile(rF2PlayerEditorFilterJson);
@@ -130,11 +130,11 @@ namespace Tests
             var tabs = GetRF2PlayerEditorFilterTabsFromJsonFile();
             Assert.IsNotNull(tabs["Chat"]);
 
-            dict tab = tabs["Chat"];
+            Dictionary<string, dynamic> tab = tabs["Chat"];
             Assert.IsNotNull(tab["CHAT"]);
         }
 
-        /// <summary> Copy the values from one dict into the same keys of another </summary>
+        /// <summary> Copy the values from one ContentDict into the same keys of another </summary>
         [TestMethod()]
         public void DictCopyTest()
         {
@@ -142,8 +142,8 @@ namespace Tests
             var tabs = GetRF2PlayerEditorFilterTabsFromJsonFile();
             Assert.IsNotNull(tabs["Chat"]);
             tabs["Chat"]["CHAT"]["Quick Chat #1"] = ""; // Delete the string
-            dict tabChat = tabs["Chat"];
-            JsonFiles.CopyDictValues(ref player, ref tabChat);
+            Dictionary<string, dynamic> tabChat = tabs["Chat"];
+            Dictionaries.CopyDictValues(ref player, ref tabChat);
             string res = tabChat["CHAT"]["Quick Chat #1"];
             Assert.AreEqual("Slowing to pit", res);
         }
@@ -158,7 +158,7 @@ namespace Tests
             Assert.IsNotNull(tabs["Chat"]);
             string res = tabs["Chat"]["CHAT"]["Quick Chat #1"];
             Assert.AreEqual("", res);
-            JsonFiles.CopyAllValuesToFilter(ref player, ref tabs);
+            Dictionaries.CopyAllValuesToFilter(ref player, ref tabs);
             res = tabs["Chat"]["CHAT"]["Quick Chat #1"];
             Assert.AreEqual("Slowing to pit", res);
         }
@@ -167,7 +167,7 @@ namespace Tests
         public void WriteFailTest()
         {
             var tabs = JsonFiles.ReadJsonFile(playerJson);
-            WriteDict.writeDict = tabs;
+            WriteDict.EditedContent = tabs;
             var ret = WriteDict.WriteValue("HELLO", "WORLD");
             Assert.IsFalse(ret);
         }
@@ -176,7 +176,7 @@ namespace Tests
         public void WriteSucceedTest()
         {
             var tabs = JsonFiles.ReadJsonFile(playerJson);
-            WriteDict.writeDict = tabs;
+            WriteDict.EditedContent = tabs;
             var ret = WriteDict.WriteValue("Quick Chat #1", "Please pass");
             Assert.IsTrue(ret);
         }

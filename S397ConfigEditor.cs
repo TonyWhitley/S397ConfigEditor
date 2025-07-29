@@ -19,6 +19,8 @@ public class Config
 
     public string playerEditorFilterJson;
 
+    public string playerDefaultsJson;
+
     internal Config()
     {
         playerPath =
@@ -33,17 +35,6 @@ public class Config
                 playerJsonFilter);
     }
 
-    /// <summary> Get the path of this source file </summary>
-    internal static string GetThisFilesPath(
-        [System.Runtime.CompilerServices.CallerFilePath]
-        string sourceFilePath = "") =>
-        System.IO.Directory.GetParent(sourceFilePath).ToString();
-
-    /// <summary> Get the path of the exe file </summary>
-    internal static string GetThisExesPath() =>
-        System.IO.Directory.GetParent(Application.ExecutablePath)
-            .ToString();
-
     /// <summary> Get the path of the data file - the same as the exe
     /// if we're running as a program, the same as the source file if
     /// we're running under VS
@@ -52,11 +43,11 @@ public class Config
     {
         if (System.Diagnostics.Debugger.IsAttached)
         {
-            return GetThisFilesPath();
+            return Utils.GetThisFilesPath();
         }
         else
         {
-            return GetThisExesPath();
+            return Utils.GetThisExesPath();
         }
     }
 }
@@ -81,7 +72,8 @@ internal class Configs : IEnumerable<KeyValuePair<Game, Config>>
                     "c:\\Program Files (x86)\\Steam\\steamapps\\common\\rFactor 2\\UserData\\player\\Player.JSON",
                 playerJsonFilter = "rF2PlayerEditorFilter.JSON",
                 playerEditorFilterJson =
-                    "rF2PlayerEditorFilter.JSON"
+                    "rF2PlayerEditorFilter.JSON",
+                playerDefaultsJson = "rF2PlayerDefaults.JSON"
             }
         },
         {
@@ -95,7 +87,8 @@ internal class Configs : IEnumerable<KeyValuePair<Game, Config>>
                     "c:\\Program Files (x86)\\Steam\\steamapps\\common\\Le Mans Ultimate\\UserData\\player\\Settings.JSON",
                 playerJsonFilter = "LMUSettingsFilter.JSON",
                 playerEditorFilterJson =
-                    "LMUSettingsFilter.JSON"
+                    "LMUSettingsFilter.JSON",
+                playerDefaultsJson = "LMUPlayerDefaults.JSON"
             }
         }
     };
@@ -127,7 +120,7 @@ internal class Configs : IEnumerable<KeyValuePair<Game, Config>>
 /// ...how it does it...
 /// 1) Read the JSON files into dicts player and filter
 /// 2) Load values from player into keys in filter
-/// 3) Split filter into a dict for each tab in the display
+/// 3) Split filter into a ContentDict for each tab in the display
 ///     CHAT
 ///     DRIVING AIDS
 ///     Graphic Options
@@ -173,40 +166,67 @@ internal static class S397ConfigEditor
         var runEditor = true;
         while (runEditor)
         {
-            config = game == Game.LMU ? configs[Game.LMU] : configs[Game.RF2];
+            config = game == Game.LMU
+                ? configs[Game.LMU]
+                : configs
+                    [Game.RF2]; //TBD: bug: that overwrites config set by command line
 
             var playerOriginal = JsonFiles.ReadJsonFile(config.playerJsonPath);
             var playerFilter =
                 JsonFiles.ReadJsonFile(config.playerEditorFilterJson);
-            JsonFiles.CopyDict(ref playerOriginal, out WriteDict.writeDict);
+            Dictionaries.CopyDict(ref playerOriginal, out WriteDict.EditedContent);
             // Get Player.JSON path from the file then remove it from the dictionary
             config.playerJsonPath = playerFilter[config.playerJson];
             playerFilter.Remove(config.playerJson);
 
             var tabs = JsonFiles.ParseRF2PlayerEditorFilter(playerFilter);
-            // Copy values from Player.JSON to the dict used to display entries
-            JsonFiles.CopyAllValuesToFilter(ref playerOriginal, ref tabs);
+            // Copy values from Player.JSON to the ContentDict used to display entries
+            Dictionaries.CopyAllValuesToFilter(ref playerOriginal, ref tabs);
 
             if (scripting)
             {
                 break;
             }
 
-            var form = new Form1(tabs, game);
+            var form = new MainForm(tabs, game);
             Application.Run(form);
             var diff =
-                WriteDict.GetDictionaryDifference(WriteDict.writeDict,
+                WriteDict.GetDictionaryDifference(WriteDict.EditedContent,
                     playerOriginal);
             if (diff.Count > 0)
             { // Content has changed, offer to save / save as
                 form.SaveChanges();
-                JsonFiles.WriteJsonFile(Game.LMU, EditorJsonPath, configs); // TBD: 
+                JsonFiles.WriteJsonFile(Game.LMU, EditorJsonPath,
+                    configs); // TBD: why tbd???
             }
             runEditor = form.ExitCode;
             // switch games
             game = game == Game.RF2 ? Game.LMU : Game.RF2;
         }
     }
+
+    public static void loadAScriptThatAltersCurrentSettings(
+        string scriptFilePath)
+    {
+        var changes = JsonFiles.ReadJsonFile(scriptFilePath);
+        foreach (var change in changes) 
+        {
+            //if writeDict has main key and item key give it the new value
+            Dictionaries.CopyDictValues(ref changes, ref WriteDict.EditedContent);
+        }
+    }
+
+    public static void resetToDefaultSettings(string defaultFilePath)
+    {
+        var defaults = JsonFiles.ReadJsonFile(defaultFilePath);
+        defaults["Player Name"] = WriteDict.EditedContent["Player Name"];
+        defaults["Player Nick"] = WriteDict.EditedContent["Player Nick"];
+        Dictionaries.CopyDict(ref defaults, out WriteDict.EditedContent);
+    }
+
+    public static void SaveCurrentSettingsToPlayerJson(string playerJsonPath) =>
+        JsonFiles.WriteGameJsonFile(game, playerJsonPath,
+            WriteDict.EditedContent);
 
 
     private class Options
@@ -255,8 +275,4 @@ internal static class S397ConfigEditor
             });
         return (game, config);
     }
-
-    public static void SaveChanges() =>
-        JsonFiles.WriteGameJsonFile(game, config.playerJsonPath,
-            WriteDict.writeDict);
 }
