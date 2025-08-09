@@ -140,6 +140,7 @@ internal static class S397ConfigEditor
 {
     private static Configs configs; // Default or loaded from the file specified
     public static Config config;
+    public static ContentDict playerOriginal;
     private static Game game;
     private static bool scripting = false;
     private const string EditorJsonPath = "PlayerEditorConfig.JSON";
@@ -171,17 +172,16 @@ internal static class S397ConfigEditor
                 : configs
                     [Game.RF2]; //TBD: bug: that overwrites config set by command line
 
-            var playerOriginal = JsonFiles.ReadJsonFile(config.playerJsonPath);
+            playerOriginal = JsonFiles.ReadJsonFile(config.playerJsonPath);
             var playerFilter =
-                JsonFiles.ReadJsonFile(config.playerEditorFilterJson);
-            Dictionaries.CopyDict(ref playerOriginal, out WriteDict.EditedContent);
+                JsonFiles.ReadJsonFilter(config.playerEditorFilterJson);
+            Dictionaries.CopyDict(playerOriginal, out WriteDict.EditedContent);
             // Get Player.JSON path from the file then remove it from the dictionary
-            config.playerJsonPath = playerFilter[config.playerJson];
-            playerFilter.Remove(config.playerJson);
+            // tbd playerFilter.Remove("S397ConfigEditor");
 
             var tabs = JsonFiles.ParseRF2PlayerEditorFilter(playerFilter);
             // Copy values from Player.JSON to the ContentDict used to display entries
-            Dictionaries.CopyAllValuesToFilter(ref playerOriginal, ref tabs);
+            Dictionaries.CopyAllValuesToFilter(playerOriginal, ref tabs);
 
             if (scripting)
             {
@@ -191,7 +191,7 @@ internal static class S397ConfigEditor
             var form = new MainForm(tabs, game);
             Application.Run(form);
             var diff =
-                WriteDict.GetDictionaryDifference(WriteDict.EditedContent,
+                Dictionaries.GetDictionaryDifference(WriteDict.EditedContent,
                     playerOriginal);
             if (diff.Count > 0)
             { // Content has changed, offer to save / save as
@@ -212,7 +212,7 @@ internal static class S397ConfigEditor
         foreach (var change in changes) 
         {
             //if writeDict has main key and item key give it the new value
-            Dictionaries.CopyDictValues(ref changes, ref WriteDict.EditedContent);
+            Dictionaries.CopyDictValues(changes, ref WriteDict.EditedContent);
         }
     }
 
@@ -221,13 +221,17 @@ internal static class S397ConfigEditor
         var defaults = JsonFiles.ReadJsonFile(defaultFilePath);
         defaults["Player Name"] = WriteDict.EditedContent["Player Name"];
         defaults["Player Nick"] = WriteDict.EditedContent["Player Nick"];
-        Dictionaries.CopyDict(ref defaults, out WriteDict.EditedContent);
+        Dictionaries.CopyDict(defaults, out WriteDict.EditedContent);
     }
 
     public static void SaveCurrentSettingsToPlayerJson(string playerJsonPath) =>
         JsonFiles.WriteGameJsonFile(game, playerJsonPath,
             WriteDict.EditedContent);
 
+    public static void SaveChangedSettings(string changesJsonPath, ContentDict changes)
+    {
+        JsonFiles.WriteGameJsonFile(game, changesJsonPath, changes);
+    }
 
     private class Options
     {
@@ -243,7 +247,7 @@ internal static class S397ConfigEditor
 
     private static (Game, Config) ParseCommandLine(string[] args)
     {
-        var game = Game.RF2; ;
+        var game = Game.LMU;
         var config = new Config();
         var parser = new Parser(settings =>
         {

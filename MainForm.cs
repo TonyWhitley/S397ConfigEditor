@@ -19,22 +19,21 @@ public partial class MainForm : Form
     private readonly Dictionary<string, ToolTip> _toolTips = new() { };
     private readonly Dictionary<string, ComboBox> _comboBoxes = new() {};
 
-    private void Tab(ContentDict tabData,
+    private void Tab(ContentEntry tabData,
         string section,
         TabPage tabPage,
         TableLayoutPanel panel,
         int width)
-    {
+    {   
         // Fill in tab 'section' with data from 'tabData'
         var entriesInThisTab = 0;
-        string lastVal = null;
 
         panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         tabPage.Text = section;
 
-        foreach (var entry in tabData[tabData.First().Key].ToObject<ContentDict>())
+        foreach (var entry in tabData[tabData.First().Key])
         {
-            string name = entry.Key;
+            string name = entry.Name;
             string val;
             if (entry.Value is string)
             {
@@ -101,8 +100,17 @@ public partial class MainForm : Form
             }
             else
             {   // JSON keys ending in # are comments, use them for tooltips
+                string lastVal = "Unknown";
                 name = name.Trim('#');
-                string tip = TextUtils.ToSentenceCase(entry.Value);
+                if (_comboBoxes.ContainsKey(name))
+                {
+                    lastVal = _comboBoxes[name].Text;
+                }
+                if (_textBoxes.ContainsKey(name))
+                {
+                    lastVal = _textBoxes[name].Text;
+                }
+                string tip = TextUtils.ToSentenceCase(entry.Value.Value);
                 if (tip.Length > 45) // If more than 45 chars wrap every 40
                 {
                     tip = TextUtils.WrapText(tip, 40);
@@ -124,8 +132,6 @@ public partial class MainForm : Form
                         .SetToolTip(_textBoxes[name], tip);
                 }
             }
-
-            lastVal = val;
         }
 
         // Set the number of columns of label/entry pairs
@@ -135,7 +141,6 @@ public partial class MainForm : Form
     /// <summary> Event handler when a value is changed </summary>
     private void ComboBoxValueChanged(object sender, EventArgs e)
     {
-        //write your event code here
         var key = ((Control) sender).Name;
         var value = ((ComboBox) sender).Text;
         WriteDict.WriteValue(key, value);
@@ -165,9 +170,9 @@ public partial class MainForm : Form
     /// <summary>
     /// The main (only) form
     /// </summary>
-    public MainForm(ContentDict tabContentDict, Game game)
+    public MainForm(Filter tabContentDict, Game game)
     {
-        var tabCount = tabContentDict.Count;
+        var tabCount = tabContentDict.Tabs.Count;
         var panels = new TableLayoutPanel[tabCount];
         var tabPages = new TabPage[tabCount];
 
@@ -202,7 +207,7 @@ public partial class MainForm : Form
         }
 
         var panelCount = 0;
-        foreach (var entry in tabContentDict)
+        foreach (var entry in tabContentDict.Tabs)
         {
             var width = entry.Key == "Chat" ? 150 : 60;
 
@@ -319,13 +324,23 @@ public partial class MainForm : Form
 
     private void saveAScriptToolStripMenuItem_Click(object sender, EventArgs e)
     {
-        saveScriptFileDialog.InitialDirectory = S397ConfigEditor.config.GetTheDataFilePath();
-        saveScriptFileDialog.Filter = "JSON files|*.JSON";
-        if (saveScriptFileDialog.ShowDialog() == DialogResult.OK)
+        var changes = Dictionaries.GetDictionaryDifference(
+            S397ConfigEditor.playerOriginal, WriteDict.EditedContent);
+        if (changes.Count > 0)
         {
-            S397ConfigEditor.config.playerJsonPath = saveScriptFileDialog.FileName;
-            S397ConfigEditor.SaveCurrentSettingsToPlayerJson(saveScriptFileDialog.FileName);
-            //MessageBox.Show(string.Format("Saved as {0}", Config.playerJsonPath));
+            saveScriptFileDialog.InitialDirectory = S397ConfigEditor.config.GetTheDataFilePath();
+            saveScriptFileDialog.Filter = "JSON files|*.JSON";
+            if (saveScriptFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                S397ConfigEditor.config.playerJsonPath = saveScriptFileDialog.FileName;
+                S397ConfigEditor.SaveChangedSettings(saveScriptFileDialog.FileName, changes);
+                //MessageBox.Show(string.Format("Saved as {0}", Config.playerJsonPath));
+            }
+        }
+        else
+        {
+            MessageBox.Show("No changes to save.", "No Changes",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 

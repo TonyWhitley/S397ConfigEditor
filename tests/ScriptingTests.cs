@@ -1,11 +1,11 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace tests
+namespace Tests
 {
     [TestClass]
     public class ScriptingTests
     {
-        private ContentDict changes = new ContentDict()
+        private ContentEntry changes = new ContentEntry()
         {
             { "Antilock Brakes", 0 }
         };

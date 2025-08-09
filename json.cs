@@ -20,6 +20,9 @@ public static class JsonFiles
     public static ContentDict ReadJsonFile(string filepath) =>
         ReadJsonFile<ContentDict>(filepath);
 
+    public static Filter ReadJsonFilter(string filepath) =>
+        ReadJsonFile<Filter>(filepath);
+
     public static T ReadJsonFile<T>(string filepath)
     {
         string json;
@@ -56,18 +59,17 @@ public static class JsonFiles
     /// <summary>
     /// Create a ContentDict of dicts, one for each tab, from the filter file
     /// </summary>
-    public static ContentDict ParseRF2PlayerEditorFilter(ContentDict rF2PlayerEditorFilter)
+    public static Filter ParseRF2PlayerEditorFilter(Filter rF2PlayerEditorFilter)
     {
-        var tabs = new ContentDict();
+        var tabs = new Filter();
         // Throw away the prepended Player.JSON key
-        rF2PlayerEditorFilter.Remove("Player.JSON");
-        foreach (var tabName in rF2PlayerEditorFilter)
+        // TBD rF2PlayerEditorFilter.Remove("Player.JSON");
+        foreach (var tabName in rF2PlayerEditorFilter.Tabs)
         {
             if (!tabName.Key.Contains("#"))
             {
                 //foreach (var f in rF2PlayerEditorFilter[tabName.Key].Children())
-                tabs[tabName.Key] = rF2PlayerEditorFilter[tabName.Key]
-                    .ToObject<ContentDict>();
+                tabs.Tabs[tabName.Key] = rF2PlayerEditorFilter.Tabs[tabName.Key];
             }
             // else it's a comment
         }
@@ -92,29 +94,30 @@ public static class JsonFiles
 
     /// <summary>
     /// Write a ContentDict to JSON file.
+    /// Write the edited content to the player JSON file
     /// </summary>
     public static void WriteGameJsonFile(Game game, string filepath,
         ContentDict dictionary)
     {
         if (false) //game == Games.RF2)
-        { // Now not sure what this does but LMU doesn't need it
-            // Neither does rF2 it seems
-            foreach (var section in dictionary)
-            {
-                foreach (var entry in dictionary[section.Key])
-                {
-                    if (entry.Name.Contains(" Version"))
-                    {
-                        // Version entries are strings not doubles "
-                        dictionary[section.Key][entry.Name] = entry.Value;
-                    }
-                    else
-                    {
-                        dictionary[section.Key][entry.Name] =
-                            WriteDict.TextToObject(entry.Value.ToString());
-                    }
-                }
-            }
+        { // TBD Now not sure what this does but LMU doesn't need it
+            //// Neither does rF2 it seems
+            //foreach (var section in dictionary)
+            //{
+            //    foreach (var entry in dictionary[section.Key])
+            //    {
+            //        if (entry.Name.Contains(" Version"))
+            //        {
+            //            // Version entries are strings not doubles "
+            //            dictionary[section.Key][entry.Name] = entry.Value;
+            //        }
+            //        else
+            //        {
+            //            dictionary[section.Key][entry.Name] =
+            //                WriteDict.TextToObject(entry.Value.ToString());
+            //        }
+            //    }
+            //}
         }
         WriteJsonFile<ContentDict>(game, filepath, dictionary);
     }

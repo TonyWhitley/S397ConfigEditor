@@ -11,10 +11,15 @@
     "HUD": 6
     }
 }
+3) Load the JSON file in the GUI and show JUST the changes.
 
 2) is created by editing in the GUI and then "File / Save changes as script"
 
-Running the script has two modes
+Running the script has three modes
 Automated: Run it from the command line, make the changes to Player.JSON and quit
+           Or several scripts.
+Semi-automated: Use a file browser to select one or more scripts.
 Pre-loading: Run it from the GUI then let the user make more changes and save a new script (as a way of reusing scripts).  
              Can do that more than once to agglomerate several scripts.
+
+Other option is to start with 1) vs. starting with the existing Player.JSON file.
